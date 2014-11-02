@@ -1,0 +1,25 @@
+src/*.exe
+src/xtracoin
+src/xtracoind
+src/test_xtracoin
+src/build.h
+.*.swp
+*.*~*
+*.bak
+*.rej
+*.orig
+*.o
+*.patch
+.xtracoin
+.xtracoin
+#compilation and Qt preprocessor part
+*.qm
+Makefile
+xtracoin-qt
+#resources cpp
+qrc_*.cpp
+#qt creator
+*.pro.user
+#mac specific
+.DS_Store
+build
