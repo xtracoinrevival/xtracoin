@@ -1,37 +1,41 @@
 TEMPLATE = app
 TARGET = xtracoin-qt
 VERSION = 0.7.2
-INCLUDEPATH += src src/json src/qt
-DEFINES += QT_GUI BOOST_THREAD_USE_LIB BOOST_SPIRIT_THREADSAFE BOOST_THREAD_PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN __NO_SYSTEM_INCLUDES
+INCLUDEPATH += src src/json src/qt src/qt/plugins/mrichtexteditor
+QT += core gui network
+DEFINES += QT_GUI BOOST_THREAD_USE_LIB BOOST_SPIRIT_THREADSAFE USE_IPV6 BOOST_SPIRIT_THREADSAFE BOOST_THREAD_PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN __NO_SYSTEM_INCLUDES
+DEFINES += STATIC
+DEFINES += QT_STATIC_BUILD
 CONFIG += no_include_pwd
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-lessThan(QT_MAJOR_VERSION, 5): CONFIG += static
-QMAKE_CXXFLAGS = -fpermissive
+CONFIG += thread
 CONFIG += static
 
+QMAKE_CXXFLAGS = -fpermissive
+
+lessThan(QT_MAJOR_VERSION, 5): CODECFORTR = UTF-8
 greaterThan(QT_MAJOR_VERSION, 4) {
     QT += widgets
     DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0
 }
 
 # UNCOMMENT THIS SECTION TO BUILD ON WINDOWS
+win32 {
 windows:LIBS += -lshlwapi
 LIBS += $$join(BOOST_LIB_PATH,,-L,) $$join(BDB_LIB_PATH,,-L,) $$join(OPENSSL_LIB_PATH,,-L,) $$join(QRENCODE_LIB_PATH,,-L,)
 LIBS += -lssl -lcrypto -ldb_cxx$$BDB_LIB_SUFFIX
 windows:LIBS += -lws2_32 -lole32 -loleaut32 -luuid -lgdi32
 LIBS += -lboost_system-mgw49-mt-s-1_55 -lboost_filesystem-mgw49-mt-s-1_55 -lboost_program_options-mgw49-mt-s-1_55 -lboost_thread-mgw49-mt-s-1_55
-win32 {
 BOOST_LIB_SUFFIX=-mgw49-mt-s-1_55
 BOOST_INCLUDE_PATH=C:/deps/boost_1_55_0
 BOOST_LIB_PATH=C:/deps/boost_1_55_0/stage/lib
 BDB_INCLUDE_PATH=C:/deps/db-4.8.30.NC/build_unix
 BDB_LIB_PATH=C:/deps/db-4.8.30.NC/build_unix
-OPENSSL_INCLUDE_PATH=C:/deps/openssl-1.0.1i/include
-OPENSSL_LIB_PATH=C:/deps/openssl-1.0.1i
+OPENSSL_INCLUDE_PATH=C:/deps/openssl-1.0.1j/include
+OPENSSL_LIB_PATH=C:/deps/openssl-1.0.1j
 MINIUPNPC_INCLUDE_PATH=C:/deps/
 MINIUPNPC_LIB_PATH=C:/deps/miniupnpc
-LIBPNG_INCLUDE_PATH=d:/deps/libpng-1.6.12
-LIBPNG_LIB_PATH=d:/deps/libpng-1.6.12/.libs
+LIBPNG_INCLUDE_PATH=d:/deps/libpng-1.6.15
+LIBPNG_LIB_PATH=d:/deps/libpng-1.6.15/.libs
 QRENCODE_INCLUDE_PATH=C:/deps/qrencode-3.4.4
 QRENCODE_LIB_PATH=C:/deps/qrencode-3.4.4/.libs
 }
@@ -41,7 +45,7 @@ UI_DIR = build
 
 # use: qmake "RELEASE=1"
 contains(RELEASE, 1) {
-    # Mac: compile for maximum compatibility (10.5, 32-bit)
+    # Mac: compile for maximum compatibility (10.6)
     macx:QMAKE_CXXFLAGS += -mmacosx-version-min=10.6 -arch i386 -isysroot /Developer/SDKs/MacOSX10.6.sdk
     macx:QMAKE_CFLAGS += -mmacosx-version-min=10.6 -arch i386 -isysroot /Developer/SDKs/MacOSX10.6.sdk
     macx:QMAKE_OBJECTIVE_CFLAGS += -mmacosx-version-min=10.6 -arch i386 -isysroot /Developer/SDKs/MacOSX10.6.sdk
@@ -204,9 +208,14 @@ HEADERS += src/qt/xtracoingui.h \
     src/qt/rpcconsole.h \
     src/version.h \
     src/netbase.h \
-    src/clientversion.h
+    src/clientversion.h \
+	src/qt/plugins/mrichtexteditor/mrichtextedit.h \
+	src/qt/ActionButton.h \
+    src/qt/QtWaitingSpinner.h \
+	src/qt/header.h
 
-SOURCES += src/qt/xtracoin.cpp src/qt/xtracoingui.cpp \
+SOURCES += src/qt/xtracoin.cpp \ 
+	src/qt/xtracoingui.cpp \
     src/qt/transactiontablemodel.cpp \
     src/qt/addresstablemodel.cpp \
     src/qt/optionsdialog.cpp \
@@ -265,10 +274,15 @@ SOURCES += src/qt/xtracoin.cpp src/qt/xtracoingui.cpp \
     src/qt/qtipcserver.cpp \
     src/qt/rpcconsole.cpp \
     src/noui.cpp \
-    src/kernel.cpp
+    src/kernel.cpp \
+	src/qt/QtWaitingSpinner.cpp \
+	src/qt/ActionButton.cpp \
+	src/qt/plugins/mrichtexteditor/mrichtextedit.cpp \
+    src/qt/header.cpp 
 
 RESOURCES += \
-    src/qt/xtracoin.qrc
+    src/qt/xtracoin.qrc \
+	src/qt/themes.qrc
 
 FORMS += \
     src/qt/forms/sendcoinsdialog.ui \
@@ -281,7 +295,9 @@ FORMS += \
     src/qt/forms/sendcoinsentry.ui \
     src/qt/forms/askpassphrasedialog.ui \
     src/qt/forms/rpcconsole.ui \
-    src/qt/forms/optionsdialog.ui
+    src/qt/forms/optionsdialog.ui \
+	src/qt/plugins/mrichtexteditor/mrichtextedit.ui \
+	src/qt/forms/Header.ui
 
 contains(USE_QRCODE, 1) {
 HEADERS += src/qt/qrcodedialog.h
@@ -299,7 +315,6 @@ TARGET = xtracoin-qt_test
 DEFINES += BOUNTYCOIN_QT_TEST
 }
 
-CODECFORTR = UTF-8
 
 # for lrelease/lupdate
 # also add new translations to src/qt/xtracoin.qrc under translations/

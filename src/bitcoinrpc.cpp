@@ -211,6 +211,7 @@ static const CRPCCommand vRPCCommands[] =
     { "setgenerate",            &setgenerate,            true,   false },
     { "gethashespersec",        &gethashespersec,        true,   false },
     { "getinfo",                &getinfo,                true,   false },
+	{ "getstakinginfo",         &getstakinginfo,         true,   false },
     { "getmininginfo",          &getmininginfo,          true,   false },
     { "getnetworkhashps",       &getnetworkhashps,       true,   false },
     { "getnewaddress",          &getnewaddress,          true,   false },

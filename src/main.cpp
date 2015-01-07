@@ -42,6 +42,7 @@ static CBigNum bnProofOfStakeHardLimit(~uint256(0) >> 30); // disabled temporari
 static CBigNum bnProofOfWorkLimitTestNet(~uint256(0) >> 16);
 static CBigNum bnProofOfStakeLimitTestNet(~uint256(0) >> 20);
 
+unsigned int nTargetSpacing = 2 * 60; // 120 seconds
 unsigned int nStakeMinAge = 60 * 60 * 36; // minimum age for coin age
 unsigned int nStakeMaxAge = 60 * 60 * 24 * 720; // stake age of full weight
 // unsigned int nStakeMaxAge = 60 * 60 * 24 * 4320; // stake age of full weight
@@ -77,7 +78,7 @@ int64 nHPSTimerStart;
 
 // Settings
 int64 nTransactionFee = MIN_TX_FEE;
-
+int64 nReserveBalance = 0;
 
 
 
@@ -2274,10 +2275,11 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock)
         return error("ProcessBlock() : CheckBlock FAILED");
 
     // ppcoin: verify hash target and signature of coinstake tx
+
     if (pblock->IsProofOfStake())
     {
-        uint256 hashProofOfStake = 0;
-        if (!CheckProofOfStake(pblock->vtx[1], pblock->nBits, hashProofOfStake))
+        uint256 hashProofOfStake = 0, targetProofOfStake = 0;
+        if (!CheckProofOfStake(pblock->vtx[1], pblock->nBits, hashProofOfStake, targetProofOfStake))
         {
             printf("WARNING: ProcessBlock(): check proof-of-stake failed for block %s\n", hash.ToString().c_str());
             return false; // do not error here as we expect this during initial block download

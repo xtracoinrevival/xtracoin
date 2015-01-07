@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>760</width>
+    <width>903</width>
     <height>380</height>
    </rect>
   </property>
@@ -17,7 +17,7 @@
    <item>
     <widget class="QLabel" name="labelExplanation">
      <property name="text">
-      <string>These are your xtracoin addresses for receiving payments. You may want to give a different one to each sender so you can keep track of who is paying you.</string>
+      <string>These are your XtraCoin addresses for receiving payments. You may want to give a different one to each sender so you can keep track of who is paying you.</string>
      </property>
      <property name="textFormat">
       <enum>Qt::PlainText</enum>
@@ -56,120 +56,96 @@
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QPushButton" name="newAddressButton">
-       <property name="toolTip">
-        <string>Create a new address</string>
-       </property>
-       <property name="text">
-        <string>&amp;New Address</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../xtracoin.qrc">
-         <normaloff>:/icons/add</normaloff>:/icons/add</iconset>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="copyToClipboard">
-       <property name="toolTip">
-        <string>Copy the currently selected address to the system clipboard</string>
-       </property>
-       <property name="text">
-        <string>&amp;Copy Address</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../xtracoin.qrc">
-         <normaloff>:/icons/editcopy</normaloff>:/icons/editcopy</iconset>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="showQRCode">
-       <property name="text">
-        <string>Show &amp;QR Code</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../xtracoin.qrc">
-         <normaloff>:/icons/qrcode</normaloff>:/icons/qrcode</iconset>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="signMessage">
-       <property name="toolTip">
-        <string>Sign a message to prove you own a xtracoin address</string>
-       </property>
-       <property name="text">
-        <string>Sign &amp;Message</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../xtracoin.qrc">
-         <normaloff>:/icons/edit</normaloff>:/icons/edit</iconset>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="verifyMessage">
-       <property name="toolTip">
-        <string>Verify a message to ensure it was signed with a specified xtracoin address</string>
-       </property>
-       <property name="text">
-        <string>&amp;Verify Message</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../xtracoin.qrc">
-         <normaloff>:/icons/transaction_0</normaloff>:/icons/transaction_0</iconset>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="deleteButton">
-       <property name="toolTip">
-        <string>Delete the currently selected address from the list</string>
-       </property>
-       <property name="text">
-        <string>&amp;Delete</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../xtracoin.qrc">
-         <normaloff>:/icons/remove</normaloff>:/icons/remove</iconset>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <widget class="QDialogButtonBox" name="buttonBox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="standardButtons">
-        <set>QDialogButtonBox::Ok</set>
-       </property>
-      </widget>
-     </item>
-    </layout>
+    <widget class="QWidget" name="buttonBar" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="newAddressButton">
+        <property name="toolTip">
+         <string>Create a new address</string>
+        </property>
+        <property name="text">
+         <string>&amp;New Address</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="copyToClipboard">
+        <property name="toolTip">
+         <string>Copy the currently selected address to the system clipboard</string>
+        </property>
+        <property name="text">
+         <string>&amp;Copy Address</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="showQRCode">
+        <property name="text">
+         <string>Show &amp;QR Code</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="signMessage">
+        <property name="toolTip">
+         <string>Sign a message to prove you own a XtraCoin address</string>
+        </property>
+        <property name="text">
+         <string>Sign &amp;Message</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="verifyMessage">
+        <property name="toolTip">
+         <string>Verify a message to ensure it was signed with a specified XtraCoin address</string>
+        </property>
+        <property name="text">
+         <string>&amp;Verify Message</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="deleteButton">
+        <property name="toolTip">
+         <string>Delete the currently selected address from the list</string>
+        </property>
+        <property name="text">
+         <string>&amp;Delete</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QDialogButtonBox" name="buttonBox">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="standardButtons">
+         <set>QDialogButtonBox::Ok</set>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="../xtracoin.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

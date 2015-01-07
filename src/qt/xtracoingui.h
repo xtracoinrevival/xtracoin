@@ -14,6 +14,7 @@ class SendCoinsDialog;
 class SignVerifyMessageDialog;
 class Notificator;
 class RPCConsole;
+class ActionButton;
 
 QT_BEGIN_NAMESPACE
 class QLabel;
@@ -67,6 +68,7 @@ private:
     SignVerifyMessageDialog *signVerifyMessageDialog;
 
     QLabel *labelEncryptionIcon;
+	QLabel *labelStakingIcon;
     QLabel *labelConnectionsIcon;
     QLabel *labelBlocksIcon;
     QLabel *progressBarLabel;
@@ -88,9 +90,13 @@ private:
     QAction *encryptWalletAction;
     QAction *backupWalletAction;
     QAction *changePassphraseAction;
+	QAction *unlockWalletAction;
+    QAction *lockWalletAction;
     QAction *aboutQtAction;
     QAction *openRPCConsoleAction;
 
+	ActionButton* actionButton;
+	
     QSystemTrayIcon *trayIcon;
     Notificator *notificator;
     TransactionView *transactionView;
@@ -104,9 +110,13 @@ private:
     void createMenuBar();
     /** Create the toolbars */
     void createToolBars();
+	void _addButtonInToolbar(QAction *action,QToolBar *toolbar);
+	
     /** Create system tray (notification) icon */
     void createTrayIcon();
 
+	
+	
 public slots:
     /** Set number of connections shown in the UI */
     void setNumConnections(int count);
@@ -170,10 +180,16 @@ private slots:
     /** Ask for passphrase to unlock wallet temporarily */
     void unlockWallet();
 
+    void lockWallet();
+
     /** Show window if hidden, unminimize when minimized, rise when obscured or show if hidden and fToggleHidden is true */
     void showNormalIfMinimized(bool fToggleHidden = false);
     /** simply calls showNormalIfMinimized(true) for use in SLOT() macro */
     void toggleHidden();
+	
+	void updateStakingIcon();
+	
+	void applyTheme(QString name="default");
 };
 
 #endif

@@ -113,11 +113,6 @@ OverviewPage::OverviewPage(QWidget *parent) :
     ui->labelWalletStatus->setText("(" + tr("out of sync") + ")");
     ui->labelTransactionsStatus->setText("(" + tr("out of sync") + ")");
 
-    QPalette  p;
-    p.setColor(QPalette::WindowText,Qt::red);
-    ui->label_xtracoin_Intro->setPalette(p);
-
-
     // start with displaying the "out of sync" warnings
     showOutOfSyncWarning(true);
 }
@@ -144,6 +139,7 @@ void OverviewPage::setBalance(qint64 balance, qint64 stake, qint64 unconfirmedBa
     ui->labelStake->setText(xtracoinUnits::formatWithUnit(unit, stake));
     ui->labelUnconfirmed->setText(xtracoinUnits::formatWithUnit(unit, unconfirmedBalance));
     ui->labelImmature->setText(xtracoinUnits::formatWithUnit(unit, immatureBalance));
+    ui->labelTotal->setText(xtracoinUnits::formatWithUnit(unit, balance + stake + unconfirmedBalance + immatureBalance));
 
     // only show immature (newly mined) balance if it's non-zero, so as not to complicate things
     // for the non-mining users
@@ -176,10 +172,10 @@ void OverviewPage::setModel(WalletModel *model)
         // Keep up to date with wallet
         setBalance(model->getBalance(), model->getStake(), model->getUnconfirmedBalance(), model->getImmatureBalance());
         connect(model, SIGNAL(balanceChanged(qint64, qint64, qint64, qint64)), this, SLOT(setBalance(qint64, qint64, qint64, qint64)));
-
-        setNumTransactions(model->getNumTransactions());
-        connect(model, SIGNAL(numTransactionsChanged(int)), this, SLOT(setNumTransactions(int)));
-
+		
+		setNumTransactions(model->getNumTransactions());
+		connect(model, SIGNAL(numTransactionsChanged(int)), this, SLOT(setNumTransactions(int)));
+		
         connect(model->getOptionsModel(), SIGNAL(displayUnitChanged(int)), this, SLOT(updateDisplayUnit()));
     }
 

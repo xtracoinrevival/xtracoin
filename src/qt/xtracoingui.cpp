@@ -25,6 +25,9 @@
 #include "notificator.h"
 #include "guiutil.h"
 #include "rpcconsole.h"
+#include "wallet.h"
+#include "ActionButton.h"
+#include "header.h"
 
 #ifdef Q_OS_MAC
 #include "macdockiconhandler.h"
@@ -43,19 +46,33 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QLocale>
+#include <QMimeData>
 #include <QMessageBox>
 #include <QProgressBar>
 #include <QStackedWidget>
 #include <QDateTime>
 #include <QMovie>
 #include <QFileDialog>
+#if QT_VERSION < 0x050000 
 #include <QDesktopServices>
+#include <QUrl>
+#else
+#include <QtCore/QDir>
+#include <QStandardPaths>
+#include <QUrlQuery>
+#endif
 #include <QTimer>
 #include <QDragEnterEvent>
-#include <QUrl>
 #include <QStyle>
+#include <QStyleFactory>
+#include <QDebug>
 
 #include <iostream>
+
+extern CWallet* pwalletMain;
+extern int64 nLastCoinStakeSearchInterval;
+extern unsigned int nTargetSpacing;
+double GetPoSKernelPS();
 
 xtracoinGUI::xtracoinGUI(QWidget *parent):
     QMainWindow(parent),
@@ -63,6 +80,8 @@ xtracoinGUI::xtracoinGUI(QWidget *parent):
     walletModel(0),
     encryptWalletAction(0),
     changePassphraseAction(0),
+	unlockWalletAction(0),
+    lockWalletAction(0),
     aboutQtAction(0),
     trayIcon(0),
     notificator(0),
@@ -94,7 +113,6 @@ xtracoinGUI::xtracoinGUI(QWidget *parent):
 
     // Create tabs
     overviewPage = new OverviewPage();
-
     transactionsPage = new QWidget(this);
     QVBoxLayout *vbox = new QVBoxLayout();
     transactionView = new TransactionView(this);
@@ -123,22 +141,32 @@ xtracoinGUI::xtracoinGUI(QWidget *parent):
     // Status bar notification icons
     QFrame *frameBlocks = new QFrame();
     frameBlocks->setContentsMargins(0,0,0,0);
-    frameBlocks->setMinimumWidth(56);
-    frameBlocks->setMaximumWidth(56);
+	frameBlocks->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
     QHBoxLayout *frameBlocksLayout = new QHBoxLayout(frameBlocks);
     frameBlocksLayout->setContentsMargins(3,0,3,0);
     frameBlocksLayout->setSpacing(3);
     labelEncryptionIcon = new QLabel();
+	labelStakingIcon = new QLabel();
     labelConnectionsIcon = new QLabel();
     labelBlocksIcon = new QLabel();
     frameBlocksLayout->addStretch();
     frameBlocksLayout->addWidget(labelEncryptionIcon);
+    frameBlocksLayout->addStretch();
+	frameBlocksLayout->addWidget(labelStakingIcon);
     frameBlocksLayout->addStretch();
     frameBlocksLayout->addWidget(labelConnectionsIcon);
     frameBlocksLayout->addStretch();
     frameBlocksLayout->addWidget(labelBlocksIcon);
     frameBlocksLayout->addStretch();
 
+	if (GetBoolArg("-staking", true))
+    {
+        QTimer *timerStakingIcon = new QTimer(labelStakingIcon);
+        connect(timerStakingIcon, SIGNAL(timeout()), this, SLOT(updateStakingIcon()));
+        timerStakingIcon->start(30 * 1000);
+        updateStakingIcon();
+    }
+	
     // Progress bar and label for blocks download
     progressBarLabel = new QLabel();
     progressBarLabel->setVisible(false);
@@ -177,6 +205,8 @@ xtracoinGUI::xtracoinGUI(QWidget *parent):
     connect(receiveCoinsPage, SIGNAL(signMessage(QString)), this, SLOT(gotoSignMessageTab(QString)));
 
     gotoOverviewPage();
+	
+	applyTheme("default");
 }
 
 xtracoinGUI::~xtracoinGUI()
@@ -192,34 +222,39 @@ void xtracoinGUI::createActions()
 {
     QActionGroup *tabGroup = new QActionGroup(this);
 
-    overviewAction = new QAction(QIcon(":/icons/overview"), tr("&Overview"), this);
+    overviewAction = new QAction( tr("&Overview"), this);
     overviewAction->setToolTip(tr("Show general overview of wallet"));
     overviewAction->setCheckable(true);
     overviewAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_1));
+	overviewAction->setProperty("objectName","overviewAction");
     tabGroup->addAction(overviewAction);
 
-    sendCoinsAction = new QAction(QIcon(":/icons/send"), tr("&Send xtracoins"), this);
-    sendCoinsAction->setToolTip(tr("Send xtracoins to a xtracoin address"));
+    sendCoinsAction = new QAction(tr("&Send coins"), this);
+    sendCoinsAction->setToolTip(tr("Send coins to a LibertyReserve address"));
     sendCoinsAction->setCheckable(true);
     sendCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_2));
+    sendCoinsAction->setProperty("objectName","sendCoinsAction");
     tabGroup->addAction(sendCoinsAction);
 
-    receiveCoinsAction = new QAction(QIcon(":/icons/receiving_addresses"), tr("&Receive xtracoins"), this);
+    receiveCoinsAction = new QAction( tr("&Receive coins"), this);
     receiveCoinsAction->setToolTip(tr("Show the list of addresses for receiving payments"));
     receiveCoinsAction->setCheckable(true);
     receiveCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_3));
+    receiveCoinsAction->setProperty("objectName","receiveCoinsAction");
     tabGroup->addAction(receiveCoinsAction);
 
-    historyAction = new QAction(QIcon(":/icons/history"), tr("&Transactions"), this);
+    historyAction = new QAction( tr("&Transactions"), this);
     historyAction->setToolTip(tr("Browse transaction history"));
     historyAction->setCheckable(true);
     historyAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_4));
+    historyAction->setProperty("objectName","historyAction");
     tabGroup->addAction(historyAction);
 
-    addressBookAction = new QAction(QIcon(":/icons/address-book"), tr("&Address Book"), this);
+    addressBookAction = new QAction(tr("&Address Book"), this);
     addressBookAction->setToolTip(tr("Edit the list of stored addresses and labels"));
     addressBookAction->setCheckable(true);
     addressBookAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
+    addressBookAction->setProperty("objectName","addressBookAction");
     tabGroup->addAction(addressBookAction);
 
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
@@ -233,7 +268,7 @@ void xtracoinGUI::createActions()
     connect(addressBookAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(addressBookAction, SIGNAL(triggered()), this, SLOT(gotoAddressBookPage()));
 
-    quitAction = new QAction(QIcon(":/icons/quit"), tr("E&xit"), this);
+    quitAction = new QAction(QIcon(":/default/res/themes/default/icons/light/sign-out.png"), tr("E&xit"), this);
     quitAction->setToolTip(tr("Quit application"));
     quitAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q));
     quitAction->setMenuRole(QAction::QuitRole);
@@ -243,23 +278,29 @@ void xtracoinGUI::createActions()
     aboutQtAction = new QAction(QIcon(":/trolltech/qmessagebox/images/qtlogo-64.png"), tr("About &Qt"), this);
     aboutQtAction->setToolTip(tr("Show information about Qt"));
     aboutQtAction->setMenuRole(QAction::AboutQtRole);
-    optionsAction = new QAction(QIcon(":/icons/options"), tr("&Options..."), this);
+    optionsAction = new QAction(QIcon(":/default/res/themes/default/icons/light/wrench.png"), tr("&Options..."), this);
     optionsAction->setToolTip(tr("Modify configuration options for xtracoin"));
     optionsAction->setMenuRole(QAction::PreferencesRole);
     toggleHideAction = new QAction(QIcon(":/icons/xtracoin"), tr("&Show / Hide"), this);
-    encryptWalletAction = new QAction(QIcon(":/icons/lock_closed"), tr("&Encrypt Wallet..."), this);
+    encryptWalletAction = new QAction(QIcon(":/default/res/themes/default/icons/light/lock.png"), tr("&Encrypt Wallet..."), this);
     encryptWalletAction->setToolTip(tr("Encrypt or decrypt wallet"));
     encryptWalletAction->setCheckable(true);
-    backupWalletAction = new QAction(QIcon(":/icons/filesave"), tr("&Backup Wallet..."), this);
+    backupWalletAction = new QAction(QIcon(":/default/res/themes/default/icons/light/save.png"), tr("&Backup Wallet..."), this);
     backupWalletAction->setToolTip(tr("Backup wallet to another location"));
-    changePassphraseAction = new QAction(QIcon(":/icons/key"), tr("&Change Passphrase..."), this);
+    changePassphraseAction = new QAction(QIcon(":/default/res/themes/default/icons/light/key.png"), tr("&Change Passphrase..."), this);
     changePassphraseAction->setToolTip(tr("Change the passphrase used for wallet encryption"));
-    signMessageAction = new QAction(QIcon(":/icons/edit"), tr("Sign &message..."), this);
+	unlockWalletAction = new QAction(QIcon(":/default/res/themes/default/icons/light/mint_open.png"), tr("&Unlock Wallet..."), this);
+    unlockWalletAction->setToolTip(tr("Unlock wallet"));
+    lockWalletAction = new QAction(QIcon(":/default/res/themes/default/icons/light/mint_closed.png"), tr("&Lock Wallet"), this);
+    lockWalletAction->setToolTip(tr("Lock wallet"));
+    signMessageAction = new QAction(QIcon(":/default/res/themes/default/icons/light/sign-in.png"), tr("Sign &message..."), this);
     verifyMessageAction = new QAction(QIcon(":/icons/transaction_0"), tr("&Verify message..."), this);
 
-    exportAction = new QAction(QIcon(":/icons/export"), tr("&Export..."), this);
+    exportAction = new QAction(tr("&Export..."), this);
     exportAction->setToolTip(tr("Export the data in the current tab to a file"));
-    openRPCConsoleAction = new QAction(QIcon(":/icons/debugwindow"), tr("&Debug window"), this);
+	exportAction->setProperty("objectName","exportAction");
+	
+    openRPCConsoleAction = new QAction(QIcon(":/default/res/themes/default/icons/light/terminal.png"), tr("&Debug window"), this);
     openRPCConsoleAction->setToolTip(tr("Open debugging and diagnostic console"));
 
     connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
@@ -270,6 +311,8 @@ void xtracoinGUI::createActions()
     connect(encryptWalletAction, SIGNAL(triggered(bool)), this, SLOT(encryptWallet(bool)));
     connect(backupWalletAction, SIGNAL(triggered()), this, SLOT(backupWallet()));
     connect(changePassphraseAction, SIGNAL(triggered()), this, SLOT(changePassphrase()));
+	connect(unlockWalletAction, SIGNAL(triggered()), this, SLOT(unlockWallet()));
+    connect(lockWalletAction, SIGNAL(triggered()), this, SLOT(lockWallet()));
     connect(signMessageAction, SIGNAL(triggered()), this, SLOT(gotoSignMessageTab()));
     connect(verifyMessageAction, SIGNAL(triggered()), this, SLOT(gotoVerifyMessageTab()));
 }
@@ -296,6 +339,8 @@ void xtracoinGUI::createMenuBar()
     QMenu *settings = appMenuBar->addMenu(tr("&Settings"));
     settings->addAction(encryptWalletAction);
     settings->addAction(changePassphraseAction);
+	settings->addAction(unlockWalletAction);
+    settings->addAction(lockWalletAction);
     settings->addSeparator();
     settings->addAction(optionsAction);
 
@@ -306,19 +351,34 @@ void xtracoinGUI::createMenuBar()
     help->addAction(aboutQtAction);
 }
 
+void xtracoinGUI::_addButtonInToolbar(QAction *action,QToolBar *toolbar)
+{
+    actionButton = new ActionButton;
+    actionButton->setAction(action);
+    toolbar->addWidget(actionButton);
+}
+
 void xtracoinGUI::createToolBars()
 {
-    QToolBar *toolbar = addToolBar(tr("Tabs toolbar"));
-    toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    toolbar->addAction(overviewAction);
-    toolbar->addAction(sendCoinsAction);
-    toolbar->addAction(receiveCoinsAction);
-    toolbar->addAction(historyAction);
-    toolbar->addAction(addressBookAction);
 
-    QToolBar *toolbar2 = addToolBar(tr("Actions toolbar"));
-    toolbar2->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    toolbar2->addAction(exportAction);
+    QToolBar *toptoolbar = new QToolBar(tr("Tabs Top toolbar"));
+    toptoolbar->addWidget(new Header);
+    addToolBar(Qt::TopToolBarArea,toptoolbar);
+
+    QToolBar *toolbar = new QToolBar(tr("Tabs toolbar"));
+    toolbar->setObjectName("leftToolbar");
+    toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    toolbar->setContentsMargins(50,0,20,0);
+	
+    _addButtonInToolbar(overviewAction,toolbar);
+    _addButtonInToolbar(sendCoinsAction,toolbar);
+    _addButtonInToolbar(receiveCoinsAction,toolbar);
+    _addButtonInToolbar(historyAction,toolbar);
+    _addButtonInToolbar(addressBookAction,toolbar);
+    _addButtonInToolbar(exportAction,toolbar);
+//	toolbar->addAction(unlockWalletAction);
+//	toolbar->addAction(lockWalletAction);
+    addToolBar(Qt::LeftToolBarArea,toolbar);;
 }
 
 void xtracoinGUI::setClientModel(ClientModel *clientModel)
@@ -406,6 +466,7 @@ void xtracoinGUI::createTrayIcon()
 #else
     // Note: On Mac, the dock icon is used to provide the tray's functionality.
     MacDockIconHandler *dockIconHandler = MacDockIconHandler::instance();
+	dockIconHandler->setMainWindow((QMainWindow *)this);
     trayIconMenu = dockIconHandler->dockMenu();
 #endif
 
@@ -646,16 +707,11 @@ void xtracoinGUI::incomingTransaction(const QModelIndex & parent, int start, int
     {
         // On new transaction, make an info balloon
         // Unless the initial block download is in progress, to prevent balloon-spam
-        QString date = ttm->index(start, TransactionTableModel::Date, parent)
-                        .data().toString();
-        QString type = ttm->index(start, TransactionTableModel::Type, parent)
-                        .data().toString();
-        QString address = ttm->index(start, TransactionTableModel::ToAddress, parent)
-                        .data().toString();
-        QIcon icon = qvariant_cast<QIcon>(ttm->index(start,
-                            TransactionTableModel::ToAddress, parent)
-                        .data(Qt::DecorationRole));
-
+        QString date = ttm->index(start, TransactionTableModel::Date, parent).data().toString();
+        QString type = ttm->index(start, TransactionTableModel::Type, parent).data().toString();
+        QString address = ttm->index(start, TransactionTableModel::ToAddress, parent).data().toString();
+        QIcon icon = qvariant_cast<QIcon>(ttm->index(start, TransactionTableModel::ToAddress, parent).data(Qt::DecorationRole));
+		
         notificator->notify(Notificator::Information,
                             (amount)<0 ? tr("Sent transaction") :
                                          tr("Incoming transaction"),
@@ -785,22 +841,28 @@ void xtracoinGUI::setEncryptionStatus(int status)
         labelEncryptionIcon->hide();
         encryptWalletAction->setChecked(false);
         changePassphraseAction->setEnabled(false);
+		unlockWalletAction->setVisible(false);
+        lockWalletAction->setVisible(false);
         encryptWalletAction->setEnabled(true);
         break;
     case WalletModel::Unlocked:
         labelEncryptionIcon->show();
-        labelEncryptionIcon->setPixmap(QIcon(":/icons/lock_open").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+        labelEncryptionIcon->setPixmap(QIcon(":/default/res/themes/default/icons/light/lock_open.png").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
         labelEncryptionIcon->setToolTip(tr("Wallet is <b>encrypted</b> and currently <b>unlocked</b>"));
         encryptWalletAction->setChecked(true);
         changePassphraseAction->setEnabled(true);
+		unlockWalletAction->setVisible(false);
+        lockWalletAction->setVisible(true);
         encryptWalletAction->setEnabled(false); // TODO: decrypt currently not supported
         break;
     case WalletModel::Locked:
         labelEncryptionIcon->show();
-        labelEncryptionIcon->setPixmap(QIcon(":/icons/lock_closed").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+        labelEncryptionIcon->setPixmap(QIcon(":/default/res/themes/default/icons/light/lock.png").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
         labelEncryptionIcon->setToolTip(tr("Wallet is <b>encrypted</b> and currently <b>locked</b>"));
         encryptWalletAction->setChecked(true);
         changePassphraseAction->setEnabled(true);
+		unlockWalletAction->setVisible(true);
+        lockWalletAction->setVisible(false);
         encryptWalletAction->setEnabled(false); // TODO: decrypt currently not supported
         break;
     }
@@ -810,8 +872,7 @@ void xtracoinGUI::encryptWallet(bool status)
 {
     if(!walletModel)
         return;
-    AskPassphraseDialog dlg(status ? AskPassphraseDialog::Encrypt:
-                                     AskPassphraseDialog::Decrypt, this);
+    AskPassphraseDialog dlg(status ? AskPassphraseDialog::Encrypt: AskPassphraseDialog::Decrypt, this);
     dlg.setModel(walletModel);
     dlg.exec();
 
@@ -820,7 +881,11 @@ void xtracoinGUI::encryptWallet(bool status)
 
 void xtracoinGUI::backupWallet()
 {
+#if QT_VERSION < 0x050000
     QString saveDir = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
+	#else
+	QString saveDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+	#endif
     QString filename = QFileDialog::getSaveFileName(this, tr("Backup Wallet"), saveDir, tr("Wallet Data (*.dat)"));
     if(!filename.isEmpty()) {
         if(!walletModel->backupWallet(filename)) {
@@ -849,6 +914,14 @@ void xtracoinGUI::unlockWallet()
     }
 }
 
+void xtracoinGUI::lockWallet()
+{
+    if(!walletModel)
+        return;
+
+    walletModel->setWalletLocked(true);
+}
+
 void xtracoinGUI::showNormalIfMinimized(bool fToggleHidden)
 {
     // activateWindow() (sometimes) helps with keyboard focus on Windows
@@ -874,4 +947,75 @@ void xtracoinGUI::showNormalIfMinimized(bool fToggleHidden)
 void xtracoinGUI::toggleHidden()
 {
     showNormalIfMinimized(true);
+}
+
+void xtracoinGUI::updateStakingIcon()
+{
+    uint64_t nMinWeight = 0, nMaxWeight = 0, nWeight = 0;
+    if (pwalletMain)
+        pwalletMain->GetStakeWeight(*pwalletMain, nMinWeight, nMaxWeight, nWeight);
+
+    if (nLastCoinStakeSearchInterval && nWeight)
+    {
+        uint64 nNetworkWeight = GetPoSKernelPS();
+        unsigned nEstimateTime = nTargetSpacing * nNetworkWeight / nWeight;
+
+        QString text;
+        if (nEstimateTime < 60)
+        {
+            text = tr("%n second(s)", "", nEstimateTime);
+        }
+        else if (nEstimateTime < 60*60)
+        {
+            text = tr("%n minute(s)", "", nEstimateTime/60);
+        }
+        else if (nEstimateTime < 24*60*60)
+        {
+            text = tr("%n hour(s)", "", nEstimateTime/(60*60));
+        }
+        else
+        {
+            text = tr("%n day(s)", "", nEstimateTime/(60*60*24));
+        }
+
+        labelStakingIcon->setPixmap(QIcon(":/icons/staking_on").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+        labelStakingIcon->setToolTip(tr("Staking.<br>Your weight is %1<br>Network weight is %2<br>Expected time to earn reward is %3").arg(nWeight).arg(nNetworkWeight).arg(text));
+    }
+    else
+    {
+        labelStakingIcon->setPixmap(QIcon(":/icons/staking_off").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+        if (pwalletMain && pwalletMain->IsLocked())
+            labelStakingIcon->setToolTip(tr("Not staking because wallet is locked"));
+        else if (vNodes.empty())
+            labelStakingIcon->setToolTip(tr("Not staking because wallet is offline"));
+        else if (IsInitialBlockDownload())
+            labelStakingIcon->setToolTip(tr("Not staking because wallet is syncing"));
+        else if (!nWeight)
+            labelStakingIcon->setToolTip(tr("Not staking because you don't have mature coins"));
+        else
+            labelStakingIcon->setToolTip(tr("Not staking"));
+    }
+}
+
+void xtracoinGUI::applyTheme(QString name)
+{
+      QApplication::setStyle(QStyleFactory::create("Fusion"));
+
+    QFile file;
+
+//    file.setFileName("themes"+QString(QDir::separator())+ name + QString(QDir::separator())+ name + ".qss");
+
+    file.setFileName (  tr(":/default/res/themes/%1/%1.qss").arg(name) );
+
+    if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        qWarning() << "Style File not found :" << name;
+    }
+
+    qApp->setStyleSheet( file.readAll() );
+    file.close();
+
+    setMinimumSize(1100,750);  // You can remove this line just give good idea of theme at this resolution - Yash
+
+
 }

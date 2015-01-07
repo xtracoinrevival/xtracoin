@@ -43,7 +43,7 @@ TransactionView::TransactionView(QWidget *parent) :
     hlayout->addSpacing(26);
 #else
     hlayout->setSpacing(0);
-    hlayout->addSpacing(23);
+    hlayout->addSpacing(0);
 #endif
 
     dateWidget = new QComboBox(this);
@@ -174,16 +174,19 @@ void TransactionView::setModel(WalletModel *model)
         transactionView->sortByColumn(TransactionTableModel::Status, Qt::DescendingOrder);
         transactionView->verticalHeader()->hide();
 
-        transactionView->horizontalHeader()->resizeSection(
-                TransactionTableModel::Status, 23);
-        transactionView->horizontalHeader()->resizeSection(
-                TransactionTableModel::Date, 120);
-        transactionView->horizontalHeader()->resizeSection(
-                TransactionTableModel::Type, 120);
-        transactionView->horizontalHeader()->setResizeMode(
-                TransactionTableModel::ToAddress, QHeaderView::Stretch);
-        transactionView->horizontalHeader()->resizeSection(
-                TransactionTableModel::Amount, 100);
+		#if QT_VERSION < 0x050000
+		transactionView->horizontalHeader()->resizeSection(TransactionTableModel::Status, 23);
+		transactionView->horizontalHeader()->resizeSection(TransactionTableModel::Date, 120);
+		transactionView->horizontalHeader()->resizeSection(TransactionTableModel::Type, 120);
+		transactionView->horizontalHeader()->setResizeMode(TransactionTableModel::ToAddress, QHeaderView::Stretch);
+		transactionView->horizontalHeader()->resizeSection(TransactionTableModel::Amount, 100);
+		 #else 
+		 transactionView->horizontalHeader()->setSectionResizeMode(TransactionTableModel::Status,QHeaderView::ResizeToContents);
+		 transactionView->horizontalHeader()->setSectionResizeMode(TransactionTableModel::Date, QHeaderView::ResizeToContents);
+		 transactionView->horizontalHeader()->setSectionResizeMode(TransactionTableModel::Type, QHeaderView::ResizeToContents);
+		 transactionView->horizontalHeader()->setSectionResizeMode(TransactionTableModel::ToAddress, QHeaderView::Stretch);
+		 transactionView->horizontalHeader()->setSectionResizeMode(TransactionTableModel::Amount, QHeaderView::ResizeToContents);
+		 #endif
     }
 }
 

@@ -106,8 +106,14 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="../xtracoin.qrc">
-         <normaloff>:/icons/address-book</normaloff>:/icons/address-book</iconset>
+        <iconset resource="../themes.qrc">
+          <normaloff>:/default/res/themes/default/icons/light/address-book.png</normaloff>:/default/res/themes/default/icons/light/address-book.png</iconset>
+       </property>
+	   <property name="iconSize">
+        <size>
+         <width>16</width>
+         <height>16</height>
+        </size>
        </property>
        <property name="shortcut">
         <string>Alt+A</string>
@@ -123,8 +129,8 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="../xtracoin.qrc">
-         <normaloff>:/icons/editpaste</normaloff>:/icons/editpaste</iconset>
+        <iconset resource="../themes.qrc">
+         <normaloff>:/default/res/themes/default/icons/light/paste.png</normaloff>:/default/res/themes/default/icons/light/paste.png</iconset>
        </property>
        <property name="shortcut">
         <string>Alt+P</string>
@@ -163,6 +169,7 @@
   </customwidget>
  </customwidgets>
  <resources>
+ <include location="../themes.qrc"/>
   <include location="../xtracoin.qrc"/>
  </resources>
  <connections/>
